@@ -35,7 +35,7 @@ struct ChessBoardView: View {
                             .scaleEffect(selectedSquares.contains(coordinate) && animateSelected ? scaleFactor : 1.0)
                             .onTapGesture {
                                 selectSquare(coordinate)
-                            
+            
                             }
                     }
                 }
@@ -107,6 +107,7 @@ struct ChessBoardView: View {
 
 struct MoveListView: View {
     let moves: [String]
+    @State private var navigate = false
     
     var body: some View {
         List(moves, id: \.self) { move in
@@ -114,11 +115,21 @@ struct MoveListView: View {
         }
         .navigationTitle("Move List")
         
-        Button("Export Moves") {
-            var moves = MovesViewModel.moves
-            exportMovesToTxt(moves)
+        NavigationLink(destination: ExitView()) {
+            ZStack{
+            Text("Export Moves")
+            .padding()
+            .buttonStyle(.bordered)
+            //export moves
+            .onTapGesture {
+                    do{
+                        try moves.joined(separator: "\n").write(to: URL(fileURLWithPath: "Users/zhangboya/Desktop/moves.txt"), atomically: true, encoding: .utf8)
+                    }catch{
+                        print("An error occurred: \(error)")
+                    }
+                }
+            }
         }
-        .padding()
     }
 }
 
@@ -131,21 +142,26 @@ struct ContentView: View {
     }
 }
 
-//export moves
-private func exportMovesToTxt(_ moves: [String]) {
-    // Join the moves array into a single string with each move on a new line.
-    let movesString = moves.joined(separator: "\n")
-
-    let dir = URL(fileURLWithPath: "Users/zhangboya/Desktop/moves.txt")
-    
-    do {
-        // Write the string to the file.
-        try movesString.write(to: dir, atomically: true, encoding: .utf8)
-        print("File saved at: \(dir)")
-    } catch {
-        print("Error writing file: \(error)")
+struct ExitView: View {
+    var body: some View {
+        NavigationView {
+            ZStack{
+                Color.black.opacity(0.001) // Invisible background to catch taps
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        exit(0) // Force quit the app
+                    }
+                VStack{
+                    Text("Tournament Over")
+                        .bold(true)
+                        .font(.largeTitle)
+                        .padding(.bottom, 5)
+                    Text("Press anywhere to exit")
+                        .padding(.bottom, 10)
+                }
+            }
+        }
     }
-
 }
 
 
