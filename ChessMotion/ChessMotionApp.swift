@@ -6,9 +6,12 @@
 //
 import SwiftUI
 
+class MovesViewModel: ObservableObject {
+    static var moves: [String] = []
+}
+
 struct ChessBoardView: View {
     @State private var selectedSquares: [String] = []
-    @State private var moves: [String] = []
     let letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
     let cream = Color.init(red: 237/255, green: 237/255, blue: 213/255)
     let lime = Color.init(red: 124/255, green: 149/255, blue: 93/255)
@@ -16,6 +19,7 @@ struct ChessBoardView: View {
     //Animation
     @State private var animateSelected = false
     @State private var scaleFactor: CGFloat = 1.0
+
     
     var body: some View {
         VStack(spacing: 0) {
@@ -37,8 +41,10 @@ struct ChessBoardView: View {
                 }
             }
             
+            // Button to export moves
+            
             // Button that navigates to the MoveListView showing the full move log
-            NavigationLink(destination: MoveListView(moves: moves)) {
+            NavigationLink(destination: MoveListView(moves: MovesViewModel.moves)) {
                 Text("Show Moves")
                     .font(.title2)
                     .padding()
@@ -73,7 +79,7 @@ struct ChessBoardView: View {
         selectedSquares.append(coordinate)
         if selectedSquares.count == 2 {
             let moveStr = "(\(selectedSquares[0]), \(selectedSquares[1]))"
-            moves.append(moveStr)
+            MovesViewModel.moves.append(moveStr)
             
             // Start animation sequence.
             animateSelected = true
@@ -107,6 +113,12 @@ struct MoveListView: View {
             Text(move)
         }
         .navigationTitle("Move List")
+        
+        Button("Export Moves") {
+            var moves = MovesViewModel.moves
+            exportMovesToTxt(moves)
+        }
+        .padding()
     }
 }
 
@@ -118,6 +130,24 @@ struct ContentView: View {
         }
     }
 }
+
+//export moves
+private func exportMovesToTxt(_ moves: [String]) {
+    // Join the moves array into a single string with each move on a new line.
+    let movesString = moves.joined(separator: "\n")
+
+    let dir = URL(fileURLWithPath: "Users/zhangboya/Desktop/moves.txt")
+    
+    do {
+        // Write the string to the file.
+        try movesString.write(to: dir, atomically: true, encoding: .utf8)
+        print("File saved at: \(dir)")
+    } catch {
+        print("Error writing file: \(error)")
+    }
+
+}
+
 
 @main
 struct ChessMotion: App {
