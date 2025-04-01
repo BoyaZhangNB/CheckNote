@@ -8,5 +8,5 @@
 import SwiftUI
 
 #Preview {
-    ExitView()
+    AppView()
 }
