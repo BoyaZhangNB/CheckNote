@@ -21,7 +21,7 @@ struct SecurityCodeView: View {
             VStack {
                 Spacer()
                 
-                Text("Your Secure Code")
+                Text("Your Game Code")
                     .font(.headline)
                     .padding(.bottom, 10)
                 
@@ -62,24 +62,70 @@ struct ChessBoardView: View {
     @State private var animateSelected = false
     @State private var scaleFactor: CGFloat = 1.0
     
+    let squareSize: CGFloat = 50.0
+    let rankLabelWidth: CGFloat = 20.0
+    let fileLabelHeight: CGFloat = 20.0
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // Chessboard: 8 rows x 8 columns.
-            ForEach(0..<8, id: \.self) { row in
-                HStack(spacing: 0) {
-                    ForEach(0..<8, id: \.self) { col in
-                        let coordinate = "\(8 - row)\(letters[col])"
-                        
-                        Rectangle()
-                            .fill(colorForSquare(at: coordinate, row: row, col: col))
-                            .frame(width: 50, height: 50)
-                            .scaleEffect(selectedSquares.contains(coordinate) && animateSelected ? scaleFactor : 1.0)
-                            .onTapGesture {
-                                selectSquare(coordinate)
+        VStack(spacing: 10) {
+            ZStack(alignment: .topLeading) {
+                // Board grid (8x8 squares)
+                VStack(spacing: 0) {
+                    ForEach(0..<8, id: \.self) { row in
+                        HStack(spacing: 0) {
+                            ForEach(0..<8, id: \.self) { col in
+                                let coordinate = "\(8 - row)\(letters[col])"
+                                Rectangle()
+                                    .fill(colorForSquare(at: coordinate, row: row, col: col))
+                                    .frame(width: squareSize, height: squareSize)
+                                    .scaleEffect(selectedSquares.contains(coordinate) && animateSelected ? scaleFactor : 1.0)
+                                    .onTapGesture {
+                                        selectSquare(coordinate)
+                                    }
                             }
+                        }
                     }
                 }
+                .frame(width: squareSize * 8, height: squareSize * 8)
+                
+                // Overlay: Rank labels (1 to 8) on left side.
+                VStack(spacing: 0) {
+                    ForEach(0..<8, id: \.self) { row in
+                        // Using the leftmost square (col = 0) in this row for base color.
+                        let baseColor = (row + 0) % 2 == 0 ? cream : lime
+                        let labelColor = baseColor == lime ? cream : lime
+                        Text("\(8 - row)")
+                            .font(.caption)
+                            .foregroundColor(labelColor)
+                            .frame(width: rankLabelWidth, height: squareSize)
+                            .padding(.leading, 2)
+                    }
+                }
+                // Position the rank labels at the left edge of the board.
+                .offset(x: 0, y: -15)
+                
+                // Overlay: File labels (a to h) on the bottom.
+                VStack {
+                    Spacer()
+                    HStack(spacing: 0) {
+                        // Add spacer so that file labels align with the board squares (skip rank labels area)
+                        Spacer().frame(width: rankLabelWidth)
+                        ForEach(0..<8, id: \.self) { col in
+                            // Using the bottom row (row = 7) and current col for base color.
+                            let baseColor = (7 + col) % 2 == 0 ? cream : lime
+                            let labelColor = baseColor == lime ? cream : lime
+                            Text(letters[col])
+                                .font(.caption)
+                                .foregroundColor(labelColor)
+                                .frame(width: squareSize, height: fileLabelHeight)
+                        }
+                        Spacer()
+                    }
+                }
+                .frame(width: squareSize * 8 + rankLabelWidth, height: squareSize * 8)
+                .offset(x: 0, y: 0)
             }
+            .padding(.leading, 20)
             
             Button("Show Moves") {
                 onShowMoves()
@@ -90,7 +136,6 @@ struct ChessBoardView: View {
             .background(Color.blue)
             .foregroundColor(.white)
             .cornerRadius(10)
-            .padding(.top, 20)
             .padding([.leading, .trailing, .bottom])
         }
         .navigationTitle("Tournament Mode")
@@ -131,6 +176,7 @@ struct ChessBoardView: View {
     }
 }
 
+
 struct MoveListView: View {
     let moves: [String]
     let onExport: () -> Void
@@ -161,7 +207,7 @@ struct ExitView: View {
                     exit(0) // Force quit the app (use with caution)
                 }
             VStack(spacing: 20) {
-                Text("Your Secure Code")
+                Text("Your Game Code")
                     .font(.headline)
                 Text(securityCode)
                     .font(.system(size: 48, weight: .bold, design: .monospaced))
