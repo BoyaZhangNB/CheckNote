@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 class MovesViewModel: ObservableObject {
-    static var moves: [String] = []
+    @Published var moves: [String] = []
 }
 
 enum Screen: Hashable {
@@ -49,140 +49,12 @@ struct SecurityCodeView: View {
     }
 }
 
-struct ChessBoardView: View {
-    @State private var selectedSquares: [String] = []
-    let onShowMoves: () -> Void
-    
-    let letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
-    let cream = Color(red: 237/255, green: 237/255, blue: 213/255)
-    let lime = Color(red: 124/255, green: 149/255, blue: 93/255)
-    let olive = Color(red: 189/255, green: 201/255, blue: 94/255)
-    
-    // Animation states
-    @State private var animateSelected = false
-    @State private var scaleFactor: CGFloat = 1.0
-    
-    let squareSize: CGFloat = 50.0
-    let rankLabelWidth: CGFloat = 20.0
-    let fileLabelHeight: CGFloat = 20.0
-    
-    var body: some View {
-        VStack(spacing: 10) {
-            ZStack(alignment: .topLeading) {
-                // Board grid (8x8 squares)
-                VStack(spacing: 0) {
-                    ForEach(0..<8, id: \.self) { row in
-                        HStack(spacing: 0) {
-                            ForEach(0..<8, id: \.self) { col in
-                                let coordinate = "\(8 - row)\(letters[col])"
-                                Rectangle()
-                                    .fill(colorForSquare(at: coordinate, row: row, col: col))
-                                    .frame(width: squareSize, height: squareSize)
-                                    .scaleEffect(selectedSquares.contains(coordinate) && animateSelected ? scaleFactor : 1.0)
-                                    .onTapGesture {
-                                        selectSquare(coordinate)
-                                    }
-                            }
-                        }
-                    }
-                }
-                .frame(width: squareSize * 8, height: squareSize * 8)
-                
-                // Overlay: Rank labels (1 to 8) on left side.
-                VStack(spacing: 0) {
-                    ForEach(0..<8, id: \.self) { row in
-                        // Using the leftmost square (col = 0) in this row for base color.
-                        let baseColor = (row + 0) % 2 == 0 ? cream : lime
-                        let labelColor = baseColor == lime ? cream : lime
-                        Text("\(8 - row)")
-                            .font(.caption)
-                            .foregroundColor(labelColor)
-                            .frame(width: rankLabelWidth, height: squareSize)
-                            .padding(.leading, 2)
-                    }
-                }
-                // Position the rank labels at the left edge of the board.
-                .offset(x: 0, y: -15)
-                
-                // Overlay: File labels (a to h) on the bottom.
-                VStack {
-                    Spacer()
-                    HStack(spacing: 0) {
-                        // Add spacer so that file labels align with the board squares (skip rank labels area)
-                        Spacer().frame(width: rankLabelWidth)
-                        ForEach(0..<8, id: \.self) { col in
-                            // Using the bottom row (row = 7) and current col for base color.
-                            let baseColor = (7 + col) % 2 == 0 ? cream : lime
-                            let labelColor = baseColor == lime ? cream : lime
-                            Text(letters[col])
-                                .font(.caption)
-                                .foregroundColor(labelColor)
-                                .frame(width: squareSize, height: fileLabelHeight)
-                        }
-                        Spacer()
-                    }
-                }
-                .frame(width: squareSize * 8 + rankLabelWidth, height: squareSize * 8)
-                .offset(x: 0, y: 0)
-            }
-            .padding(.leading, 20)
-            
-            Button("Show Moves") {
-                onShowMoves()
-            }
-            .font(.title2)
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-            .padding([.leading, .trailing, .bottom])
-        }
-        .navigationTitle("Tournament Mode")
-    }
-    
-    private func colorForSquare(at coordinate: String, row: Int, col: Int) -> Color {
-        if selectedSquares.contains(coordinate) {
-            return olive
-        }
-        return (row + col) % 2 == 0 ? cream : lime
-    }
-    
-    private func selectSquare(_ coordinate: String) {
-        if selectedSquares.contains(coordinate) {
-            selectedSquares.removeAll()
-            return
-        }
-        selectedSquares.append(coordinate)
-        if selectedSquares.count == 2 {
-            let moveStr = "(\(selectedSquares[0]), \(selectedSquares[1]))"
-            MovesViewModel.moves.append(moveStr)
-            
-            animateSelected = true
-            withAnimation(.easeOut(duration: 0.25)) {
-                scaleFactor = 1.1
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                withAnimation(.easeIn(duration: 0.25)) {
-                    scaleFactor = 0.0
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                    scaleFactor = 1.0
-                    animateSelected = false
-                    selectedSquares.removeAll()
-                }
-            }
-        }
-    }
-}
-
-
 struct MoveListView: View {
-    let moves: [String]
+    @EnvironmentObject var movesVM: MovesViewModel
     let onExport: () -> Void
-    
+
     var body: some View {
-        List(moves, id: \.self) { move in
+        List(movesVM.moves, id: \.self) { move in
             Text(move)
         }
         .navigationTitle("Move List")
@@ -195,6 +67,7 @@ struct MoveListView: View {
         }
     }
 }
+
 
 struct ExitView: View {
     let securityCode: String
@@ -222,82 +95,92 @@ struct ExitView: View {
         .navigationBarBackButtonHidden(true)
     }
 }
-
-struct AppView: View {
-    @State private var path = [Screen]()
-    @State private var securityCode: String = ""
+//
+//struct AppView: View {
+//    @State private var path = [Screen]()
+//    @State private var securityCode: String = ""
+//    
+//    init() {
+//        _securityCode = State(initialValue: Self.generateCode())
+//    }
+//    
+//    static func generateCode() -> String {
+//        (0..<6).map { _ in String(Int.random(in: 0...9)) }.joined()
+//    }
+//    
+//    var body: some View {
+//        NavigationStack(path: $path) {
+//            // SecurityCodeView displays the current securityCode.
+//            SecurityCodeView(securityCode: securityCode) {
+//                path.append(.chess)
+//            }
+//            .navigationDestination(for: Screen.self) { screen in
+//                switch screen {
+//                case .chess:
+//                    ChessBoardView{
+//                        path.append(.moveList)
+//                    }
+//                case .moveList:
+//                    MoveListView(moves: MovesViewModel.moves) {
+//                        exportMoves()
+//                        // Capture the current code so ExitView gets this value.
+//                        let currentCode = securityCode
+//                        path.append(.exit)
+//                        // Optionally, you could set securityCode = currentCode here to “freeze” it.
+//                    }
+//                case .exit:
+//                    ExitView(securityCode: securityCode)
+//                case .security:
+//                    SecurityCodeView(securityCode: securityCode) {
+//                        path.append(.chess)
+//                    }
+//                }
+//            }
+//        }
+//        // Update the security code on background/foreground changes,
+//        // unless the ExitView is active.
+//        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+//            if path.last != .exit {
+//                securityCode = Self.generateCode()
+//            }
+//        }
+//        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+//            if path.last != .exit {
+//                securityCode = Self.generateCode()
+//            }
+//        }
+//    }
     
-    init() {
-        _securityCode = State(initialValue: Self.generateCode())
-    }
-    
-    static func generateCode() -> String {
-        (0..<6).map { _ in String(Int.random(in: 0...9)) }.joined()
-    }
-    
-    var body: some View {
-        NavigationStack(path: $path) {
-            // SecurityCodeView displays the current securityCode.
-            SecurityCodeView(securityCode: securityCode) {
-                path.append(.chess)
-            }
-            .navigationDestination(for: Screen.self) { screen in
-                switch screen {
-                case .chess:
-                    ChessBoardView {
-                        path.append(.moveList)
-                    }
-                case .moveList:
-                    MoveListView(moves: MovesViewModel.moves) {
-                        exportMoves()
-                        // Capture the current code so ExitView gets this value.
-                        let currentCode = securityCode
-                        path.append(.exit)
-                        // Optionally, you could set securityCode = currentCode here to “freeze” it.
-                    }
-                case .exit:
-                    ExitView(securityCode: securityCode)
-                case .security:
-                    SecurityCodeView(securityCode: securityCode) {
-                        path.append(.chess)
-                    }
-                }
-            }
-        }
-        // Update the security code on background/foreground changes,
-        // unless the ExitView is active.
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-            if path.last != .exit {
-                securityCode = Self.generateCode()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            if path.last != .exit {
-                securityCode = Self.generateCode()
-            }
-        }
-    }
-    
-    private func exportMoves() {
+@MainActor private func exportMoves() {
         let fileName = "moves.txt"
         let fileManager = FileManager.default
+    @EnvironmentObject var movesVM: MovesViewModel
         if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
             let fileURL = documentsURL.appendingPathComponent(fileName)
             do {
-                try MovesViewModel.moves.joined(separator: "\n").write(to: fileURL, atomically: true, encoding: .utf8)
+                try movesVM.moves.joined(separator: "\n").write(to: fileURL, atomically: true, encoding: .utf8)
                 print("File exported to \(fileURL)")
             } catch {
                 print("An error occurred during file export: \(error)")
             }
         }
     }
-}
+
 
 @main
 struct ChessMotion: App {
+    @StateObject private var movesVM = MovesViewModel()
     var body: some Scene {
         WindowGroup {
-            AppView()
+            ChessBoardView()
+                .environmentObject(movesVM)
         }
     }
 }
+
+
+//The following is true for diamand cubic crystsal structure
+//8 atoms
+//4 interstitial atoms
+//4 lattice atoms
+//Carbon is shiny
