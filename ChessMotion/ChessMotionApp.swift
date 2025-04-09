@@ -2,7 +2,20 @@ import SwiftUI
 
 @MainActor
 class MovesViewModel: ObservableObject {
+    /// A structured record of one move.
+    struct Move {
+        let color: String        // "w" or "b"
+        let piece: String        // e.g. "♔", "♟", etc.
+        let fromCoord: String
+        let toCoord: String
+        let capturedPiece: String?
+    }
+    
+    /// Textual list for display (unchanged).
     @Published var moves: [String] = []
+    
+    /// History of moves with enough data to revert.
+    @Published var moveHistory: [Move] = []
 }
 
 enum Screen: Hashable {

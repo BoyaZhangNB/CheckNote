@@ -8,17 +8,16 @@ import SwiftUI
 
 struct ChessBoardView: View {
     @State private var securityCode: String = ChessBoardView.generateCode()
-    // Dictionary of positions -> piece symbol.
+
     @State private var boardPieces: [String: String] = [
-        // White pieces
+        // White
         "1a": "♖", "1b": "♘", "1c": "♗", "1d": "♕", "1e": "♔", "1f": "♗", "1g": "♘", "1h": "♖",
         "2a": "♙", "2b": "♙", "2c": "♙", "2d": "♙", "2e": "♙", "2f": "♙", "2g": "♙", "2h": "♙",
-        // Black pieces
+        // Black
         "8a": "♜", "8b": "♞", "8c": "♝", "8d": "♛", "8e": "♚", "8f": "♝", "8g": "♞", "8h": "♜",
         "7a": "♟", "7b": "♟", "7c": "♟", "7d": "♟", "7e": "♟", "7f": "♟", "7g": "♟", "7h": "♟"
     ]
     
-    // For temporarily marking illegal moves.
     @State private var invalidSquares: [String] = []
     @State private var selectedSquares: [String] = []
     @State private var selectedPiece: String? = nil
@@ -29,7 +28,6 @@ struct ChessBoardView: View {
     let olive = Color(red: 189/255, green: 201/255, blue: 94/255)
     let redSquare = Color.red
     
-    // Animation state.
     @State private var animateSelected = false
     @State private var scaleFactor: CGFloat = 1.0
     
@@ -37,251 +35,333 @@ struct ChessBoardView: View {
     let rankLabelWidth: CGFloat = 20.0
     let fileLabelHeight: CGFloat = 20.0
     
-    //display moves
+    //Button navigation
     @State private var showMoveList = false
+    @State private var showSettings = false
+    @State private var showArbiterAlert = false
+    @State private var showArbiterView = false
+    
+    // We rely on the environment object from ChessMotionApp.swift
     @EnvironmentObject var movesVM: MovesViewModel
     
+    // For the document picker sheet
+    @State private var showDocumentExporter = false
+    @State private var documentURL: URL?
+    
+
     var body: some View {
-        // Use a ZStack to set a consistent background.
-        ZStack {
-            // Background color matching the reference.
-            Color(red: 62/255, green: 60/255, blue: 60/255)
-                .ignoresSafeArea()
-            
-            VStack(spacing: 5) {
-                // Display the current security code at the top.
-                Text("Tournament Mode")
-                    .font(.custom("InriaSerif-Regular", size: 25))
-                    .foregroundColor(.white)
-                Text("\(securityCode)")
-                    .font(.custom("InriaSerif-Regular", size: 22))
-                    .foregroundColor(.white)
-                    .padding(.bottom, 20)
+        NavigationStack{
+            ZStack {
+                Color(red: 62/255, green: 60/255, blue: 60/255)
+                    .ignoresSafeArea()
                 
-                // Chess board grid.
-                ZStack(alignment: .topLeading) {
-                    VStack(spacing: 0) {
-                        ForEach(0..<8, id: \.self) { row in
-                            HStack(spacing: 0) {
-                                ForEach(0..<8, id: \.self) { col in
-                                    let coordinate = "\(8 - row)\(letters[col])"
-                                    ZStack {
-                                        Rectangle()
-                                            .fill(colorForSquare(at: coordinate, row: row, col: col))
-                                            .frame(width: squareSize, height: squareSize)
-                                            .scaleEffect(selectedSquares.contains(coordinate) && animateSelected ? scaleFactor : 1.0)
-                                        
-                                        if let pieceSymbol = boardPieces[coordinate] {
-                                            Text(pieceSymbol)
-                                                .font(.largeTitle)
+                VStack(spacing: 5) {
+                    Text("Tournament Mode")
+                        .font(.custom("InriaSerif-Regular", size: 25))
+                        .foregroundColor(.white)
+                    Text("\(securityCode)")
+                        .font(.custom("InriaSerif-Regular", size: 22))
+                        .foregroundColor(.white)
+                        .padding(.bottom, 20)
+                    
+                    ZStack(alignment: .topLeading) {
+                        VStack(spacing: 0) {
+                            ForEach(0..<8, id: \.self) { row in
+                                HStack(spacing: 0) {
+                                    ForEach(0..<8, id: \.self) { col in
+                                        let coordinate = "\(8 - row)\(letters[col])"
+                                        ZStack {
+                                            Rectangle()
+                                                .fill(colorForSquare(at: coordinate, row: row, col: col))
+                                                .frame(width: squareSize, height: squareSize)
+                                                .scaleEffect(selectedSquares.contains(coordinate) && animateSelected ? scaleFactor : 1.0)
+                                            
+                                            if let pieceSymbol = boardPieces[coordinate] {
+                                                Text(pieceSymbol)
+                                                    .font(.largeTitle)
+                                            }
+                                        }
+                                        .onTapGesture {
+                                            selectSquare(coordinate)
                                         }
                                     }
-                                    .onTapGesture {
-                                        selectSquare(coordinate)
-                                    }
                                 }
                             }
                         }
-                    }
-                    .frame(width: squareSize * 8, height: squareSize * 8)
-                    
-                    // Rank labels on the left.
-                    VStack(spacing: 0) {
-                        ForEach(0..<8, id: \.self) { row in
-                            let baseColor = (row % 2 == 0) ? cream : lime
-                            let labelColor = baseColor == lime ? cream : lime
-                            Text("\(8 - row)")
-                                .font(.caption)
-                                .foregroundColor(labelColor)
-                                .frame(width: rankLabelWidth, height: squareSize)
-                                .padding(.leading, 2)
-                        }
-                    }
-                    .offset(x: 0, y: -15)
-                    
-                    // File labels at the bottom.
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 0) {
-                            Spacer().frame(width: rankLabelWidth)
-                            ForEach(0..<8, id: \.self) { col in
-                                let baseColor = ((7 + col) % 2 == 0) ? cream : lime
+                        .frame(width: squareSize * 8, height: squareSize * 8)
+                        
+                        // Rank labels on the left
+                        VStack(spacing: 0) {
+                            ForEach(0..<8, id: \.self) { row in
+                                let baseColor = (row % 2 == 0) ? cream : lime
                                 let labelColor = baseColor == lime ? cream : lime
-                                Text(letters[col])
+                                Text("\(8 - row)")
                                     .font(.caption)
                                     .foregroundColor(labelColor)
-                                    .frame(width: squareSize, height: fileLabelHeight)
+                                    .frame(width: rankLabelWidth, height: squareSize)
+                                    .padding(.leading, 2)
                             }
-                            Spacer()
                         }
+                        .offset(x: 0, y: -15)
+                        
+                        // File labels at the bottom
+                        VStack {
+                            Spacer()
+                            HStack(spacing: 0) {
+                                Spacer().frame(width: rankLabelWidth)
+                                ForEach(0..<8, id: \.self) { col in
+                                    let baseColor = ((7 + col) % 2 == 0) ? cream : lime
+                                    let labelColor = baseColor == lime ? cream : lime
+                                    Text(letters[col])
+                                        .font(.caption)
+                                        .foregroundColor(labelColor)
+                                        .frame(width: squareSize, height: fileLabelHeight)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .frame(width: squareSize * 8 + rankLabelWidth, height: squareSize * 8)
                     }
-                    .frame(width: squareSize * 8 + rankLabelWidth, height: squareSize * 8)
-                }
-                .padding(.leading, 20)
-                
-                // ---- 1) NEW WHITE SQUARE BELOW THE BOARD ----
-                let last14 = Array(movesVM.moves.suffix(14))
-                let movelistlength = movesVM.moves.count
-                let k = (movelistlength <= 14) ? 0 : movelistlength-14
-                let listpad: CGFloat = 42
-                Rectangle()
-                    .fill(Color.white)
-                    .frame(height: 160)
-                    .cornerRadius(12)
-                    .overlay(
-                        HStack(alignment: .top) {
-                            // Left column
-                            VStack(alignment: .leading) {
-                                Text("White")
-                                    .padding(.bottom, 1)
-                                    .padding(.leading, listpad)
-                                    .font(.custom("InriaSerif-Regular", size: 14))
-                                ForEach(last14.indices, id: \.self) { i in
-                                    if (last14[i].prefix(1) == "w"){
-                                        Text("\((k + i + 2)/2): \(last14[i].suffix(8))")
-                                            .font(.custom("InriaSerif-Regular", size: 14))
-                                            .padding(.leading, listpad)
-                                            .frame(alignment: .top)
-                                    }
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            // Right column
-                            VStack(alignment: .leading) {
-                                Text("Black")
-                                    .padding(.bottom, 1)
-                                    .font(.custom("InriaSerif-Regular", size: 14))
-                                    .padding(.trailing, listpad)
-                                ForEach(last14.indices, id: \.self) { i in
-                                    if (last14[i].prefix(1) == "b"){
-                                        Text("\((k + i + 2)/2): \(last14[i].suffix(8))")
-                                            .font(.custom("InriaSerif-Regular", size: 14))
-                                            .padding(.trailing, listpad)
-                                    }
-                                }
-                            }
-                        }
-                            .foregroundColor(.black)
-                            .padding()
-                    )
-                    .gesture(
-                        TapGesture(count: 2).onEnded {
-                            showMoveList = true
-                        }
-                    )
-                    .padding(.horizontal, 40)
-                // ------- BUTTONS WITH ICONS (NO BACKGROUND) -------
-                HStack(spacing: 20) {
-                    // Undo
-                    Button(action: {
-                        // Undo logic goes here
-                    }, label: {
-                        VStack {
-                            // SF Symbol icon (placeholder)
-                            Image(systemName: "arrow.uturn.left")
-                            Text("Undo")
-                        }
-                    })
-                    .foregroundColor(.white) // text/icon color
-                    // Optionally, font styling
-                    //.font(.headline)
-
-                    // Export
-                    Button(action: {
-                        // Export logic goes here
-                    }, label: {
-                        VStack {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("Export")
-                        }
-                    })
-                    .foregroundColor(.white)
-
-                    // Setting
-                    Button(action: {
-                        // Show your Setting view here
-                    }, label: {
-                        VStack {
-                            Image(systemName: "gearshape")
-                            Text("Setting")
-                        }
-                    })
-                    .foregroundColor(.white)
+                    .padding(.leading, 20)
                     
-                    // Draw Offer
-                    Button(action: {
-                        // Offer draw logic
-                    }, label: {
-                        VStack(spacing: -3) {
-                            Image(systemName: "hand.raised.fill")
-                            Text("Draw")
-                            Text("offer")
-                        }
-                    })
-                    .foregroundColor(.white)
+                    // Small "score sheet" area below the board
+                    let last14 = Array(movesVM.moves.suffix(14))
+                    let movelistlength = movesVM.moves.count
+                    let k = (movelistlength <= 14) ? 0 : movelistlength - 14
+                    let listpad: CGFloat = 42
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(height: 160)
+                        .cornerRadius(12)
+                        .overlay(
+                            HStack(alignment: .top) {
+                                // Left column: White
+                                VStack(alignment: .leading) {
+                                    Text("White")
+                                        .padding(.bottom, 1)
+                                        .padding(.leading, listpad)
+                                        .font(.custom("InriaSerif-Regular", size: 14))
+                                    ForEach(last14.indices, id: \.self) { i in
+                                        if (last14[i].hasPrefix("w")) {
+                                            Text("\((k + i + 2)/2): \(last14[i].suffix(8))")
+                                                .font(.custom("InriaSerif-Regular", size: 14))
+                                                .padding(.leading, listpad)
+                                        }
+                                    }
+                                }
+                                Spacer()
+                                // Right column: Black
+                                VStack(alignment: .leading) {
+                                    Text("Black")
+                                        .padding(.bottom, 1)
+                                        .padding(.trailing, listpad)
+                                        .font(.custom("InriaSerif-Regular", size: 14))
+                                    ForEach(last14.indices, id: \.self) { i in
+                                        if (last14[i].hasPrefix("b")) {
+                                            Text("\((k + i + 2)/2): \(last14[i].suffix(8))")
+                                                .font(.custom("InriaSerif-Regular", size: 14))
+                                                .padding(.trailing, listpad)
+                                        }
+                                    }
+                                }
+                            }
+                                .foregroundColor(.black)
+                                .padding()
+                        )
+                        .gesture(
+                            TapGesture(count: 2).onEnded {
+                                showMoveList = true
+                            }
+                        )
+                        .padding(.horizontal, 40)
+                    
+                    // Bottom button row
+                    HStack(spacing: 20) {
+                        // ---- UNDO Button ----
+                        Button(action: {
+                            undoMove()  // <<< ADDED
+                        }, label: {
+                            VStack {
+                                Image(systemName: "arrow.uturn.left")
+                                Text("Undo")
+                            }
+                        })
+                        .foregroundColor(.white)
+                        
+                        // Export
+                        Button(action: {
+                            exportMoves()
+                        }, label: {
+                            VStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Export")
+                            }
+                        })
+                        .foregroundColor(.white)
+                        
+                        // Settings
+                        Button(action: {
+                            showSettings = true// show settings
+                        }, label: {
+                            VStack {
+                                Image(systemName: "gearshape")
+                                Text("Setting")
+                            }
+                        })
+                        .foregroundColor(.white)
+                        
+                        // Draw offer
+                        Button(action: {
+                            // draw offer logic
+                        }, label: {
+                            VStack(spacing: -3) {
+                                Image(systemName: "hand.raised.fill")
+                                Text("Draw")
+                                Text("offer")
+                            }
+                        })
+                        .foregroundColor(.white)
+                    }
+                    .padding(.top, 20)
+                    .padding(.bottom, 10)
                 }
-                .padding(.top, 20) // Space above
-                .padding(.bottom, 10) // Space below
+            }
+            
+            .navigationDestination(isPresented: $showArbiterView) {
+                ArbiterModeView()
             }
         }
         .sheet(isPresented: $showMoveList) {
-            // MovesViewModel.moves is a static array in the sample code:
             MoveListView(onExport: {
-                // Provide export logic or reference it from your App struct
+                // Provide or reference your export logic
             })
+            .environmentObject(movesVM)
         }
-        // Update the security code when the app goes into background/foreground.
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
             securityCode = ChessBoardView.generateCode()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             securityCode = ChessBoardView.generateCode()
         }
-        .navigationTitle("Tournament Mode")
-    }
-    
-    // MARK: - Security Code Generation
-    
-    static func generateCode() -> String {
-        (0..<6).map { _ in String(Int.random(in: 0...9)) }.joined()
-    }
-    
-    // MARK: - Chess Board Helpers
-    
-    private func colorForSquare(at coordinate: String, row: Int, col: Int) -> Color {
-        if invalidSquares.contains(coordinate) {
-            return redSquare
+        // Show the settings as a bottom sheet
+        .sheet(isPresented: $showSettings) {
+            // The bottom sheet
+            VStack(spacing: 0) {
+                
+                Button("Arbiter Mode") {
+                    // Show an alert to confirm
+                    showArbiterAlert = true
+                    
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                
+                Divider()
+                    .padding(.horizontal, 5)
+                    .background(Color.gray)
+                
+                Button("Appearance") {
+                    // ...
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                
+                Spacer()
+            }
+            .font(.custom("Inter-VariableFont_opsz,wght", size: 17))
+            .foregroundColor(.black)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .padding(.top, 10)
+            .presentationDetents([.fraction(0.33)])
+            
+            // Show the alert on top of the sheet
+            .alert("Accessing arbiter mode during a tournament is illegal. Are you sure?", isPresented: $showArbiterAlert) {
+                Button("No", role: .cancel) {
+                    // If No, just close the alert and remain here
+                }
+                Button("Yes") {
+                    // If Yes, dismiss the sheet, then navigate
+                    showSettings = false       // close the bottom sheet
+                    showArbiterView = true     // push ArbiterModeView
+                    securityCode = ChessBoardView.generateCode() //SecurityCode changes
+                }
+            }
         }
-        if selectedSquares.contains(coordinate) {
-            return olive
-        }
-        return (row + col) % 2 == 0 ? cream : lime
+        
     }
     
+    // MARK: - Undo Function
+    private func undoMove() {
+        // Pop the last move from the moveHistory
+        guard let lastMove = movesVM.moveHistory.popLast() else {
+            return // no moves to undo
+        }
+        // Remove the corresponding text from moves
+        if !movesVM.moves.isEmpty {
+            movesVM.moves.removeLast()
+        }
+        
+        // Revert the board
+        boardPieces[lastMove.fromCoord] = lastMove.piece
+        if let captured = lastMove.capturedPiece {
+            boardPieces[lastMove.toCoord] = captured
+        } else {
+            boardPieces[lastMove.toCoord] = nil
+        }
+    }
+    
+    // MARK: - Export Moves
+        private func exportMoves() {
+            let fileName = "moves.txt"
+            let fileManager = FileManager.default
+            
+            guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("Could not find Documents directory.")
+                return
+            }
+            
+            let fileURL = documentsURL.appendingPathComponent(fileName)
+            do {
+                // Write all moves to file
+                let fileContents = movesVM.moves.joined(separator: "\n")
+                try fileContents.write(to: fileURL, atomically: true, encoding: .utf8)
+                
+                // Store this URL for the DocumentExporter
+                documentURL = fileURL
+                // Show the DocumentExporter sheet
+                showDocumentExporter = true
+                
+                print("File written to \(fileURL). Now presenting picker.")
+            } catch {
+                print("Error writing file: \(error)")
+            }
+        }
+    
+    // MARK: - Square Selection / Moving
     private func selectSquare(_ coordinate: String) {
-        // First tap: select a piece.
         if selectedSquares.isEmpty {
+            // First tap: select a piece
             guard boardPieces[coordinate] != nil else { return }
             selectedSquares.append(coordinate)
             selectedPiece = boardPieces[coordinate]
         }
-        // Second tap: attempt move.
         else if selectedSquares.count == 1 {
             let fromCoord = selectedSquares[0]
             let toCoord = coordinate
-            
             if fromCoord == toCoord {
                 resetSelection()
                 return
             }
             
             if let piece = selectedPiece, isLegalMove(piece, fromCoord, toCoord) {
+                // Capture info about any piece that’s on the destination square
+                let captured = boardPieces[toCoord]  // could be nil
+                
+                // Move the piece
                 boardPieces[toCoord] = piece
                 boardPieces[fromCoord] = nil
                 
-                // Handle castling.
+                // Handle castling (unchanged from your code)
                 if (piece == "♔" || piece == "♚"),
                    let (_, fromFile) = parseCoord(fromCoord),
                    let (_, toFile) = parseCoord(toCoord),
@@ -306,15 +386,25 @@ struct ChessBoardView: View {
                     }
                 }
                 
-                // Record move (if needed).
-                if movesVM.moves.count%2 == 0 {
+                // --- Record Move in moveHistory (NEW) ---
+                let color = (movesVM.moves.count % 2 == 0) ? "w" : "b"
+                movesVM.moveHistory.append(
+                    MovesViewModel.Move(
+                        color: color,
+                        piece: piece,
+                        fromCoord: fromCoord,
+                        toCoord: toCoord,
+                        capturedPiece: captured
+                    )
+                )
+                
+                // Keep your existing text-based record for display
+                if color == "w" {
                     movesVM.moves.append("w: (\(fromCoord), \(toCoord))")
-                }
-                else if movesVM.moves.count%2 == 1 {
+                } else {
                     movesVM.moves.append("b: (\(fromCoord), \(toCoord))")
                 }
 
-                
                 animateSelection()
             } else {
                 invalidSquares = [fromCoord, toCoord]
@@ -323,11 +413,13 @@ struct ChessBoardView: View {
                 }
             }
             resetSelection()
-        } else {
+        }
+        else {
             resetSelection()
         }
     }
     
+    // MARK: - Helper Methods
     private func resetSelection() {
         selectedSquares.removeAll()
         selectedPiece = nil
@@ -349,7 +441,21 @@ struct ChessBoardView: View {
         }
     }
     
-    // Expanded move legality checks (same as before) ...
+    private func colorForSquare(at coordinate: String, row: Int, col: Int) -> Color {
+        if invalidSquares.contains(coordinate) {
+            return redSquare
+        }
+        if selectedSquares.contains(coordinate) {
+            return olive
+        }
+        return (row + col) % 2 == 0 ? cream : lime
+    }
+    
+    static func generateCode() -> String {
+        (0..<6).map { _ in String(Int.random(in: 0...9)) }.joined()
+    }
+    
+    // Check move legality, plus parseCoord, same as your existing code
     private func isLegalMove(_ piece: String, _ fromCoord: String, _ toCoord: String) -> Bool {
         if let targetPiece = boardPieces[toCoord], sameColor(piece, targetPiece) {
             return false
@@ -377,15 +483,17 @@ struct ChessBoardView: View {
     private func sameColor(_ piece1: String, _ piece2: String) -> Bool {
         let whiteSet: Set<String> = ["♙", "♖", "♘", "♗", "♕", "♔"]
         return (whiteSet.contains(piece1) && whiteSet.contains(piece2)) ||
-        (!whiteSet.contains(piece1) && !whiteSet.contains(piece2))
+               (!whiteSet.contains(piece1) && !whiteSet.contains(piece2))
     }
     
     private func kingMoveValid(_ from: String, _ to: String) -> Bool {
         guard let (frank, ffile) = parseCoord(from),
-              let (_, tfile) = parseCoord(to) else { return false }
-        let rowDiff = abs(frank - (parseCoord(to)?.0 ?? 0))
+              let (trank, tfile) = parseCoord(to) else { return false }
+        let rowDiff = abs(frank - trank)
         let colDiff = abs(ffile - tfile)
+        // normal king move
         if rowDiff <= 1 && colDiff <= 1 { return true }
+        // castling check
         if rowDiff == 0 && colDiff == 2 {
             let kingStartWhite = "1e"
             let kingStartBlack = "8e"
@@ -419,9 +527,11 @@ struct ChessBoardView: View {
     private func isLegalWhitePawnMove(_ from: String, _ to: String) -> Bool {
         guard let (frank, ffile) = parseCoord(from),
               let (trank, tfile) = parseCoord(to) else { return false }
+        // single advance
         if frank + 1 == trank && ffile == tfile && boardPieces[to] == nil {
             return true
         }
+        // double advance from rank 2
         if frank == 2 && trank == 4 && ffile == tfile {
             let oneStep = "\(frank+1)\(letters[ffile-1])"
             let twoStep = "\(frank+2)\(letters[ffile-1])"
@@ -429,6 +539,7 @@ struct ChessBoardView: View {
                 return true
             }
         }
+        // capture
         if frank + 1 == trank && abs(ffile - tfile) == 1 && boardPieces[to] != nil {
             return true
         }
@@ -438,9 +549,11 @@ struct ChessBoardView: View {
     private func isLegalBlackPawnMove(_ from: String, _ to: String) -> Bool {
         guard let (frank, ffile) = parseCoord(from),
               let (trank, tfile) = parseCoord(to) else { return false }
+        // single advance
         if frank - 1 == trank && ffile == tfile && boardPieces[to] == nil {
             return true
         }
+        // double advance from rank 7
         if frank == 7 && trank == 5 && ffile == tfile {
             let oneStep = "\(frank-1)\(letters[ffile-1])"
             let twoStep = "\(frank-2)\(letters[ffile-1])"
@@ -448,6 +561,7 @@ struct ChessBoardView: View {
                 return true
             }
         }
+        // capture
         if frank - 1 == trank && abs(ffile - tfile) == 1 && boardPieces[to] != nil {
             return true
         }
@@ -456,15 +570,18 @@ struct ChessBoardView: View {
     
     private func rookMoveValid(_ from: String, _ to: String) -> Bool {
         guard let (frank, ffile) = parseCoord(from),
-              let (_, tfile) = parseCoord(to) else { return false }
-        if let (trank, _) = parseCoord(to), frank == trank {
+              let (trank, tfile) = parseCoord(to) else { return false }
+        // same rank
+        if frank == trank {
             let step = ffile < tfile ? 1 : -1
             for col in stride(from: ffile + step, to: tfile, by: step) {
                 let testCoord = "\(frank)\(letters[col-1])"
                 if boardPieces[testCoord] != nil { return false }
             }
             return true
-        } else if let (trank, _) = parseCoord(to), ffile == tfile {
+        }
+        // same file
+        else if ffile == tfile {
             let step = frank < trank ? 1 : -1
             for row in stride(from: frank + step, to: trank, by: step) {
                 let testCoord = "\(row)\(letters[ffile-1])"
@@ -511,5 +628,4 @@ struct ChessBoardView: View {
         let file = letters.distance(from: letters.startIndex, to: fileIndex) + 1
         return (rank, file)
     }
-    
 }
