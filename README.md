@@ -18,7 +18,7 @@ The app also features an innovative **Arbiter Mode**, a restricted-access view t
 
 ### 📱 Preview
 
-![ChessMotion Demo](assets/chessmotion_demo_small.gif)
+![ChessMotion Demo](Asset/chessmotion_demo_small.gif)
 
 ### Figure 1: The chess player will have a device beside them during a tournament. For every move they make on the chess board, they make the identical move on CheckNote
 
