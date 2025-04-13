@@ -18,5 +18,5 @@ The app also features an innovative **Arbiter Mode**, a restricted-access view t
 
 ### 📱 Preview
 ![The chess player will have a device beside them during a tournament. For every move they make on the chess board, they make the identical move on CheckNote](image_url_or_path)
-![Settings page allows for configuration of appearance and access to Arbitor Mode](image_url_or_path)
-![A standard chess scoresheet can be exported after the game](image_url_or_path)
+![Settings page allows for configuration of appearance and access to Arbitor Mode](Asset/Settings.png)
+![A standard chess scoresheet can be exported after the game](Asset/Export.png)
