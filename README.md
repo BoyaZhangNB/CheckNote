@@ -17,6 +17,6 @@ The app also features an innovative **Arbiter Mode**, a restricted-access view t
 - 🎨 **Custom UI**: Built entirely in SwiftUI with a polished aesthetic, including rounded buttons, colored squares, and clean layout for readability.
 
 ### 📱 Preview
-![The chess player will have a device beside them during a tournament. For every move they make on the chess board, they make the identical move on CheckNote](image_url_or_path)
+![The chess player will have a device beside them during a tournament. For every move they make on the chess board, they make the identical move on CheckNote](Asset/chessmotion_demo.gif)
 ![Settings page allows for configuration of appearance and access to Arbitor Mode](Asset/Settings.png)
 ![A standard chess scoresheet can be exported after the game](Asset/Export.png)
