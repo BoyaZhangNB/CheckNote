@@ -17,9 +17,8 @@ The app also features an innovative **Arbiter Mode**, a restricted-access view t
 - 🎨 **Custom UI**: Built entirely in SwiftUI with a polished aesthetic, including rounded buttons, colored squares, and clean layout for readability.
 
 ### 📱 Preview
-<p align="center">
-  <img src="Assets/chessmotion_demo.gif" alt="ChessMotion demo of move tracking" width="300" height="600">
-</p>
+
+![ChessMotion Demo](assets/chessmotion_demo_small.gif)
 
 ### Figure 1: The chess player will have a device beside them during a tournament. For every move they make on the chess board, they make the identical move on CheckNote
 
